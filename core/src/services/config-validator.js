@@ -74,6 +74,7 @@ const AUTOMATION_SCHEMA = {
             oneOf: ['none', 'normal', 'organic', 'both'],
             default: 'none',
         },
+        organicAntiSteal: { type: 'boolean', default: false },
     },
     additionalProperties: false,
 };
@@ -123,6 +124,7 @@ const ACCOUNT_CONFIG_SCHEMA = {
             default: 'preferred',
         },
         preferredSeedId: { type: 'number', min: 0, default: 0 },
+        organicAntiStealMinutes: { type: 'number', min: 1, max: 1000, default: 5 },
         friendQuietHours: QUIET_HOURS_SCHEMA,
         friendBlacklist: { type: 'array', items: { type: 'number' }, default: [] },
     },

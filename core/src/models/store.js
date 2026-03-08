@@ -33,17 +33,17 @@ const DEFAULT_QR_LOGIN = {
 const DEFAULT_ACCOUNT_CONFIG = {
     automation: {
         farm: true,
-        farm_manage: true, // 农场打理总开关（浇水/除草/除虫）
-        farm_water: true, // 自动浇水
-        farm_weed: true, // 自动除草
-        farm_bug: true, // 自动除虫
-        farm_push: true,   // 收到 LandsNotify 推送时是否立即触发巡田
-        land_upgrade: true, // 是否自动升级土地
-        friend: true,       // 好友互动总开关
-        friend_help_exp_limit: true, // 帮忙经验达上限后自动停止帮忙
-        friend_steal: true, // 偷菜
-        friend_help: true,  // 帮忙
-        friend_bad: false,  // 捣乱(放虫草)
+        farm_manage: true,
+        farm_water: true,
+        farm_weed: true,
+        farm_bug: true,
+        farm_push: true,
+        land_upgrade: true,
+        friend: true,
+        friend_help_exp_limit: true,
+        friend_steal: true,
+        friend_help: true,
+        friend_bad: false,
         task: true,
         email: true,
         fertilizer_gift: false,
@@ -55,7 +55,9 @@ const DEFAULT_ACCOUNT_CONFIG = {
         open_server_gift: true,
         sell: true,
         fertilizer: 'none',
+        organicAntiSteal: false,
     },
+    organicAntiStealMinutes: 5,
     plantingStrategy: 'preferred',
     preferredSeedId: 0,
     intervals: {
@@ -172,6 +174,7 @@ function cloneAccountConfig(base = DEFAULT_ACCOUNT_CONFIG) {
     return {
         ...base,
         automation,
+        organicAntiStealMinutes: Math.max(1, Math.min(1000, Number.parseInt(base.organicAntiStealMinutes, 10) || 5)),
         intervals: { ...(base.intervals || DEFAULT_ACCOUNT_CONFIG.intervals) },
         friendQuietHours: { ...(base.friendQuietHours || DEFAULT_ACCOUNT_CONFIG.friendQuietHours) },
         friendBlacklist: rawBlacklist.map(Number).filter(n => Number.isFinite(n) && n > 0),
@@ -211,6 +214,10 @@ function normalizeAccountConfig(input, fallback = accountFallbackConfig) {
 
     if (src.preferredSeedId !== undefined && src.preferredSeedId !== null) {
         cfg.preferredSeedId = Math.max(0, Number.parseInt(src.preferredSeedId, 10) || 0);
+    }
+
+    if (src.organicAntiStealMinutes !== undefined && src.organicAntiStealMinutes !== null) {
+        cfg.organicAntiStealMinutes = Math.max(1, Math.min(1000, Number.parseInt(src.organicAntiStealMinutes, 10) || 5));
     }
 
     if (src.intervals && typeof src.intervals === 'object') {
@@ -382,6 +389,7 @@ function getConfigSnapshot(accountId) {
         automation: { ...cfg.automation },
         plantingStrategy: cfg.plantingStrategy,
         preferredSeedId: cfg.preferredSeedId,
+        organicAntiStealMinutes: cfg.organicAntiStealMinutes,
         intervals: { ...cfg.intervals },
         friendQuietHours: { ...cfg.friendQuietHours },
         friendBlacklist: [...(cfg.friendBlacklist || [])],
@@ -416,6 +424,10 @@ function applyConfigSnapshot(snapshot, options = {}) {
 
     if (cfg.preferredSeedId !== undefined && cfg.preferredSeedId !== null) {
         next.preferredSeedId = Math.max(0, Number.parseInt(cfg.preferredSeedId, 10) || 0);
+    }
+
+    if (cfg.organicAntiStealMinutes !== undefined && cfg.organicAntiStealMinutes !== null) {
+        next.organicAntiStealMinutes = Math.max(1, Math.min(1000, Number.parseInt(cfg.organicAntiStealMinutes, 10) || 5));
     }
 
     if (cfg.intervals && typeof cfg.intervals === 'object') {
@@ -465,6 +477,10 @@ function getPreferredSeed(accountId) {
 
 function getPlantingStrategy(accountId) {
     return getAccountConfigSnapshot(accountId).plantingStrategy;
+}
+
+function getOrganicAntiStealMinutes(accountId) {
+    return getAccountConfigSnapshot(accountId).organicAntiStealMinutes || 5;
 }
 
 function getIntervals(accountId) {
@@ -634,6 +650,7 @@ module.exports = {
     isAutomationOn,
     getPreferredSeed,
     getPlantingStrategy,
+    getOrganicAntiStealMinutes,
     getIntervals,
     getFriendQuietHours,
     getFriendBlacklist,

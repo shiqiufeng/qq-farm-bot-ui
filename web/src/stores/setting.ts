@@ -18,6 +18,7 @@ export interface AutomationConfig {
   friend_help?: boolean
   friend_bad?: boolean
   open_server_gift?: boolean
+  organicAntiSteal?: boolean
 }
 
 export interface IntervalsConfig {
@@ -56,6 +57,7 @@ export interface QrLoginConfig {
 export interface SettingsState {
   plantingStrategy: string
   preferredSeedId: number
+  organicAntiStealMinutes: number
   intervals: IntervalsConfig
   friendQuietHours: FriendQuietHoursConfig
   automation: AutomationConfig
@@ -68,6 +70,7 @@ export const useSettingStore = defineStore('setting', () => {
   const settings = ref<SettingsState>({
     plantingStrategy: 'preferred',
     preferredSeedId: 0,
+    organicAntiStealMinutes: 5,
     intervals: {},
     friendQuietHours: { enabled: false, start: '23:00', end: '07:00' },
     automation: {},
@@ -99,6 +102,7 @@ export const useSettingStore = defineStore('setting', () => {
         const d = data.data
         settings.value.plantingStrategy = d.strategy || 'preferred'
         settings.value.preferredSeedId = d.preferredSeed || 0
+        settings.value.organicAntiStealMinutes = d.organicAntiStealMinutes || 5
         settings.value.intervals = d.intervals || {}
         settings.value.friendQuietHours = d.friendQuietHours || { enabled: false, start: '23:00', end: '07:00' }
         settings.value.automation = d.automation || {}
@@ -131,6 +135,7 @@ export const useSettingStore = defineStore('setting', () => {
       const settingsPayload = {
         plantingStrategy: newSettings.plantingStrategy,
         preferredSeedId: newSettings.preferredSeedId,
+        organicAntiStealMinutes: newSettings.organicAntiStealMinutes,
         intervals: newSettings.intervals,
         friendQuietHours: newSettings.friendQuietHours,
       }

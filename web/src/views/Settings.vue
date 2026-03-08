@@ -51,6 +51,7 @@ const currentAccountName = computed(() => {
 const localSettings = ref({
   plantingStrategy: 'preferred',
   preferredSeedId: 0,
+  organicAntiStealMinutes: 5,
   intervals: { farmMin: 2, farmMax: 2, friendMin: 10, friendMax: 10 },
   friendQuietHours: { enabled: false, start: '23:00', end: '07:00' },
   automation: {
@@ -77,6 +78,7 @@ const localSettings = ref({
     month_card: false,
     open_server_gift: false,
     fertilizer: 'none',
+    organicAntiSteal: false,
   },
 })
 
@@ -108,6 +110,7 @@ function syncLocalSettings() {
     localSettings.value = JSON.parse(JSON.stringify({
       plantingStrategy: settings.value.plantingStrategy,
       preferredSeedId: settings.value.preferredSeedId,
+      organicAntiStealMinutes: settings.value.organicAntiStealMinutes || 5,
       intervals: settings.value.intervals,
       friendQuietHours: settings.value.friendQuietHours,
       automation: settings.value.automation,
@@ -139,6 +142,7 @@ function syncLocalSettings() {
         month_card: false,
         open_server_gift: false,
         fertilizer: 'none',
+        organicAntiSteal: false,
       }
     }
     else {
@@ -167,6 +171,7 @@ function syncLocalSettings() {
         month_card: false,
         open_server_gift: false,
         fertilizer: 'none',
+        organicAntiSteal: false,
       }
       localSettings.value.automation = {
         ...defaults,
@@ -589,13 +594,31 @@ async function handleTestOffline() {
           </div>
 
           <!-- Fertilizer -->
-          <div>
+          <div class="space-y-3">
             <BaseSelect
               v-model="localSettings.automation.fertilizer"
               label="施肥策略"
               class="w-full md:w-1/2"
               :options="fertilizerOptions"
             />
+            <div class="flex flex-wrap items-center gap-4">
+              <BaseSwitch
+                v-model="localSettings.automation.organicAntiSteal"
+                label="有机肥防偷"
+              />
+              <BaseInput
+                v-model.number="localSettings.organicAntiStealMinutes"
+                label="提前分钟数"
+                type="number"
+                min="1"
+                max="1000"
+                class="w-32"
+                :disabled="!localSettings.automation.organicAntiSteal"
+              />
+            </div>
+            <p class="text-xs text-gray-500 dark:text-gray-400">
+              开启后，当作物剩余指定分钟成熟时，自动使用有机肥催熟并立即收获，防止被偷。不受施肥策略影响。
+            </p>
           </div>
         </div>
 
