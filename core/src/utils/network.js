@@ -12,6 +12,7 @@ const { updateStatusFromLogin, updateStatusGold, updateStatusLevel } = require('
 const { recordOperation } = require('../services/stats');
 const { types } = require('./proto');
 const { toLong, toNum, syncServerTime, log, logWarn } = require('./utils');
+const cryptoWasm = require('./crypto-wasm');
 
 // ============ 事件发射器 (用于推送通知) ============
 const networkEvents = new EventEmitter();
@@ -47,7 +48,15 @@ function hasOwn(obj, key) {
 }
 
 // ============ 消息编解码 ============
-function encodeMsg(serviceName, methodName, bodyBytes) {
+async function encodeMsg(serviceName, methodName, bodyBytes) {
+    let finalBody = bodyBytes || Buffer.alloc(0);
+    try {
+        finalBody = await cryptoWasm.encryptBuffer(finalBody);
+    } catch (e) {
+        // 兼容模式：如果加密失败（例如环境不支持），尝试发送未加密包，但打印警告
+        logWarn('系统', `WASM加密失败: ${e.message}`);
+    }
+
     const msg = types.GateMessage.create({
         meta: {
             service_name: serviceName,
@@ -56,21 +65,39 @@ function encodeMsg(serviceName, methodName, bodyBytes) {
             client_seq: toLong(clientSeq),
             server_seq: toLong(serverSeq),
         },
-        body: bodyBytes || Buffer.alloc(0),
+        body: finalBody,
     });
     const encoded = types.GateMessage.encode(msg).finish();
     clientSeq++;
     return encoded;
 }
 
-function sendMsg(serviceName, methodName, bodyBytes, callback) {
+async function sendMsg(serviceName, methodName, bodyBytes, callback) {
     if (!ws || ws.readyState !== WebSocket.OPEN) {
         log('系统', '[WS] 连接未打开');
+        if (callback) callback(new Error('连接未打开'));
         return false;
     }
     const seq = clientSeq;
-    const encoded = encodeMsg(serviceName, methodName, bodyBytes);
+    let encoded;
+    try {
+        encoded = await encodeMsg(serviceName, methodName, bodyBytes);
+    } catch (err) {
+        if (callback) callback(err);
+        return false;
+    }
+
     if (callback) pendingCallbacks.set(seq, callback);
+
+    // 再次检查连接状态（因为 await 期间可能断开）
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+        if (callback) {
+            pendingCallbacks.delete(seq);
+            callback(new Error('连接已在加密途中关闭'));
+        }
+        return false;
+    }
+    
     ws.send(encoded);
     return true;
 }
@@ -93,16 +120,21 @@ function sendMsgAsync(serviceName, methodName, bodyBytes, timeout = 10000) {
             reject(new Error(`请求超时: ${methodName} (seq=${seq}, pending=${pending})`));
         });
 
-        const sent = sendMsg(serviceName, methodName, bodyBytes, (err, body, meta) => {
+        sendMsg(serviceName, methodName, bodyBytes, (err, body, meta) => {
             networkScheduler.clear(timeoutKey);
             if (err) reject(err);
             else resolve({ body, meta });
-        });
-
-        if (!sent) {
+        }).then(sent => {
+            if (!sent) {
+                networkScheduler.clear(timeoutKey);
+                // 这里不再 reject，因为 callback 会被调用并 reject
+                // 但如果 sendMsg 返回 false 且没有调用 callback (例如连接未打开)，则需要处理
+                // 修改后的 sendMsg 会在连接未打开时调用 callback
+            }
+        }).catch(err => {
             networkScheduler.clear(timeoutKey);
-            reject(new Error(`发送失败: ${methodName}`));
-        }
+            reject(err);
+        });
     });
 }
 
