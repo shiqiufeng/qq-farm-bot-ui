@@ -477,7 +477,7 @@ async function runOrganicAntiSteal() {
     });
     recordOperation('fertilize', fertilizedCount);
 
-    await sleep(150);
+    await sleep(50);// 等待服务器更新
 
     log('有机肥防偷', '开始收获施肥成功的地块...', {
         module: 'farm',
