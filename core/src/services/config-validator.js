@@ -56,6 +56,7 @@ const AUTOMATION_SCHEMA = {
         land_upgrade: { type: 'boolean', default: true },
         friend: { type: 'boolean', default: true },
         friend_steal: { type: 'boolean', default: true },
+        friend_steal_blacklist: { type: 'array', items: { type: 'number', min: 1 }, default: [] },
         friend_help: { type: 'boolean', default: true },
         friend_bad: { type: 'boolean', default: false },
         friend_help_exp_limit: { type: 'boolean', default: true },
@@ -68,11 +69,17 @@ const AUTOMATION_SCHEMA = {
         vip_gift: { type: 'boolean', default: true },
         month_card: { type: 'boolean', default: true },
         open_server_gift: { type: 'boolean', default: true },
-        sell: { type: 'boolean', default: true },
-        fertilizer: { 
-            type: 'string', 
-            oneOf: ['none', 'normal', 'organic', 'both'],
-            default: 'none',
+         sell: { type: 'boolean', default: false }, // 出售土地
+        fertilizer_multi_season: { type: 'boolean', default: false }, // 多季肥料
+        fertilizer_land_types: { // 肥料种植类型
+            type: 'array', // 数组类型
+            default: ['gold', 'black', 'red', 'normal'], // 默认值为所有种植类型
+            items: { type: 'string', oneOf: ['gold', 'black', 'red', 'normal'] }, // 每个元素必须是这四个值之一
+        },
+        fertilizer: {  // 肥料类型
+            type: 'string',  // 字符串类型
+            oneOf: ['none', 'normal', 'organic', 'both'], // 只能是这四个值之一
+            default: 'none', // 默认值为none
         },
         organicAntiSteal: { type: 'boolean', default: false },
     },
@@ -145,14 +152,15 @@ const OFFLINE_REMINDER_SCHEMA = {
         },
         reloginUrlMode: {
             type: 'string',
-            oneOf: ['none', 'qq_link', 'qr_link'],
+            oneOf: ['none', 'qq_link', 'qr_code', 'all'],
             default: 'none',
         },
         endpoint: { type: 'string', maxLength: 500, default: '' },
         token: { type: 'string', maxLength: 200, default: '' },
         title: { type: 'string', maxLength: 100, default: '账号下线提醒' },
         msg: { type: 'string', maxLength: 500, default: '账号下线' },
-        offlineDeleteSec: { type: 'number', min: 60, max: 86400, default: 120 },
+        offlineDeleteSec: { type: 'number', min: 1, max: 9999999999, default: 1 },
+        offlineDeleteEnabled: { type: 'boolean', default: false },
     },
     required: ['channel'],
     additionalProperties: false,

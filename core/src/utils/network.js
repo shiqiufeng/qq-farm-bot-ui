@@ -62,7 +62,7 @@ function hasOwn(obj, key) {
 }
 
 // ============ 消息编解码 ============
-async function encodeMsg(serviceName, methodName, bodyBytes) {
+async function encodeMsg(serviceName, methodName, bodyBytes, clientSeqValue) {
     let finalBody = bodyBytes || Buffer.alloc(0);
     try {
         finalBody = await cryptoWasm.encryptBuffer(finalBody);
@@ -73,16 +73,16 @@ async function encodeMsg(serviceName, methodName, bodyBytes) {
 
     const msg = types.GateMessage.create({
         meta: {
-            service_name: serviceName,
-            method_name: methodName,
+            service_name: serviceName,// 服务名称
+            method_name: methodName,// 方法名称
             message_type: 1,
-            client_seq: toLong(clientSeq),
-            server_seq: toLong(serverSeq),
+            client_seq: toLong(clientSeqValue),// 客户端序列号
+            server_seq: toLong(serverSeq),// 服务器序列号
         },
         body: finalBody,
     });
-    const encoded = types.GateMessage.encode(msg).finish();
-    clientSeq++;
+    const encoded = types.GateMessage.encode(msg).finish();// 编码消息
+    
     return encoded;
 }
 
@@ -92,10 +92,11 @@ async function sendMsg(serviceName, methodName, bodyBytes, callback) {
         if (callback) callback(new Error('连接未打开'));
         return false;
     }
-    const seq = clientSeq;
+    const seq = clientSeq; // 客户端序列号
+    clientSeq += 1;// 客户端序列号递增
     let encoded;
     try {
-        encoded = await encodeMsg(serviceName, methodName, bodyBytes);
+        encoded = await encodeMsg(serviceName, methodName, bodyBytes, seq);// 编码消息
     } catch (err) {
         if (callback) callback(err);
         return false;
@@ -111,9 +112,17 @@ async function sendMsg(serviceName, methodName, bodyBytes, callback) {
         }
         return false;
     }
-    
-    ws.send(encoded);
-    return true;
+   
+    try {
+        ws.send(encoded);// 发送消息
+    } catch (err) {
+        if (callback) {
+            pendingCallbacks.delete(seq);// 删除待处理回调
+            callback(err);// 调用回调函数
+        }
+        return false;// 发送失败
+    }
+    return true;// 发送成功
 }
 
 /** Promise 版发送 */
@@ -437,10 +446,7 @@ function startHeartbeat() {
             if (heartbeatMissCount >= 2) {
                 log('心跳', '尝试重连...');
                 // 清理待处理的回调，避免堆积
-                pendingCallbacks.forEach((cb, _seq) => {
-                    try { cb(new Error('连接超时，已清理')); } catch { }
-                });
-                pendingCallbacks.clear();
+                rejectAllPendingRequests('连接超时，已清理');// 拒绝所有待处理请求
             }
         }
 
@@ -488,7 +494,7 @@ function connect(code, onLoginSuccess) {
 
     ws.on('close', (code, _reason) => {
         console.warn(`[WS] 连接关闭 (code=${code})`);
-        cleanup();
+        cleanup(`连接关闭(code=${code})`);// 清理连接
         // 自动重连：延迟 5s 后重试，复用已保存的登录回调
         if (savedLoginCallback) {
             networkScheduler.setTimeoutTask('auto_reconnect', 5000, () => {
@@ -512,13 +518,14 @@ function connect(code, onLoginSuccess) {
     });
 }
 
-function cleanup() {
-    networkScheduler.clearAll();
-    pendingCallbacks.clear();
+function cleanup(reason = '网络清理') {
+    rejectAllPendingRequests(`请求已中断: ${reason}`);// 拒绝所有待处理请求
+    networkScheduler.clearAll();// 清除所有定时任务
+    
 }
 
 function reconnect(newCode) {
-    cleanup();
+    cleanup('主动重连');// 清理连接
     if (ws) {
         ws.removeAllListeners();
         ws.close();

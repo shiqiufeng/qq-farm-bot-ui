@@ -14,7 +14,10 @@ export interface AutomationConfig {
   task?: boolean
   sell?: boolean
   fertilizer?: string
+  fertilizer_multi_season?: boolean
+  fertilizer_land_types?: string[]
   friend_steal?: boolean
+  friend_steal_blacklist?: number[]
   friend_help?: boolean
   friend_bad?: boolean
   open_server_gift?: boolean
@@ -44,6 +47,9 @@ export interface OfflineConfig {
   title: string
   msg: string
   offlineDeleteSec: number
+  offlineDeleteEnabled: boolean
+  custom_headers?: string
+  custom_body?: string
 }
 
 export interface UIConfig {
@@ -82,7 +88,10 @@ export const useSettingStore = defineStore('setting', () => {
       token: '',
       title: '账号下线提醒',
       msg: '账号下线',
-      offlineDeleteSec: 120,
+      offlineDeleteSec: 1,
+      offlineDeleteEnabled: false,
+      custom_headers: '',
+      custom_body: '',
     },
     qrLogin: {
       apiDomain: 'q.qq.com',
@@ -107,14 +116,18 @@ export const useSettingStore = defineStore('setting', () => {
         settings.value.friendQuietHours = d.friendQuietHours || { enabled: false, start: '23:00', end: '07:00' }
         settings.value.automation = d.automation || {}
         settings.value.ui = d.ui || {}
-        settings.value.offlineReminder = d.offlineReminder || {
+        settings.value.offlineReminder = {
           channel: 'webhook',
           reloginUrlMode: 'none',
           endpoint: '',
           token: '',
           title: '账号下线提醒',
           msg: '账号下线',
-          offlineDeleteSec: 120,
+          offlineDeleteSec: 1,
+          offlineDeleteEnabled: false,
+          custom_headers: '',
+          custom_body: '',
+          ...(d.offlineReminder || {}),
         }
         settings.value.qrLogin = d.qrLogin || {
           apiDomain: 'q.qq.com',
