@@ -25,6 +25,20 @@ const pendingCallbacks = new Map();
 let wsErrorState = { code: 0, at: 0, message: '' };
 const networkScheduler = createScheduler('network');
 
+
+function rejectAllPendingRequests(reason = '请求被中断') {
+    const entries = Array.from(pendingCallbacks.entries());
+    pendingCallbacks.clear();
+    for (const [, callback] of entries) {
+        try {
+            callback(new Error(reason));
+        } catch {
+            // ignore callback failure
+        }
+    }
+    return entries.length;
+}
+
 // ============ 用户状态 (登录后设置) ============
 const userState = {
     gid: 0,

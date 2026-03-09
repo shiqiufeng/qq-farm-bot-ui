@@ -47,6 +47,28 @@ const currentAccountName = computed(() => {
   const acc = accounts.value.find((a: any) => a.id === currentAccountId.value)
   return acc ? (acc.name || acc.nick || acc.id) : null
 })
+const allFertilizerLandTypes = ['gold', 'black', 'red', 'normal']// 多季施肥土地类型
+
+const fertilizerLandTypeOptions = [
+  { label: '金土地', value: 'gold' },
+  { label: '黑土地', value: 'black' },
+  { label: '红土地', value: 'red' },
+  { label: '普通土地', value: 'normal' },
+]
+
+function normalizeFertilizerLandTypes(input: unknown) {
+  const source = Array.isArray(input) ? input : allFertilizerLandTypes
+  const normalized: string[] = []
+  for (const item of source) {
+    const value = String(item || '').trim().toLowerCase()
+    if (!allFertilizerLandTypes.includes(value))
+      continue
+    if (normalized.includes(value))
+      continue
+    normalized.push(value)
+  }
+  return normalized
+}
 
 const localSettings = ref({
   plantingStrategy: 'preferred',

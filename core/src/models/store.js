@@ -16,6 +16,9 @@ const PUSHOO_CHANNELS = new Set([
     'discord', 'wxpusher',
 ]);
 const INTERVAL_MAX_SEC = 86400;
+const DEFAULT_OFFLINE_DELETE_SEC = 9999999999;
+const DEFAULT_FERTILIZER_LAND_TYPES = ['gold', 'black', 'red', 'normal'];
+const FERTILIZER_LAND_TYPE_SET = new Set(DEFAULT_FERTILIZER_LAND_TYPES);
 const DEFAULT_OFFLINE_REMINDER = {
     channel: 'webhook',
     reloginUrlMode: 'none',
@@ -23,16 +26,16 @@ const DEFAULT_OFFLINE_REMINDER = {
     token: '',
     title: '账号下线提醒',
     msg: '账号下线',
-    offlineDeleteSec: 120,
+    offlineDeleteSec: DEFAULT_OFFLINE_DELETE_SEC,
 };
 
 const DEFAULT_QR_LOGIN = {
     apiDomain: 'q.qq.com',
 };
 // ============ 全局配置 ============
-const DEFAULT_ACCOUNT_CONFIG = {
-    automation: {
-        farm: true,
+const DEFAULT_ACCOUNT_CONFIG = { // 默认账号配置
+    automation: { // 自动化开关
+        farm: true, // 自动管理农场
         farm_manage: true,
         farm_water: true,
         farm_weed: true,
@@ -53,16 +56,18 @@ const DEFAULT_ACCOUNT_CONFIG = {
         vip_gift: true,
         month_card: true,
         open_server_gift: true,
-        sell: true,
+        sell: false,
         fertilizer: 'none',
-        organicAntiSteal: false,
+        fertilizer_multi_season: false, // 多季节肥料
+        fertilizer_land_types: [...DEFAULT_FERTILIZER_LAND_TYPES], // 肥料种植类型
+        organicAntiSteal: false,  // 有机反贼
     },
-    organicAntiStealMinutes: 5,
-    plantingStrategy: 'preferred',
-    preferredSeedId: 0,
-    intervals: {
-        farm: 2,
-        friend: 10,
+    organicAntiStealMinutes: 5, // 有机反贼检测间隔分钟数
+    plantingStrategy: 'preferred', // 种植策略
+    preferredSeedId: 0, // 优选种子 ID
+    intervals: { 
+        farm: 2, 
+        friend: 10, 
         farmMin: 2,
         farmMax: 2,
         friendMin: 10,
